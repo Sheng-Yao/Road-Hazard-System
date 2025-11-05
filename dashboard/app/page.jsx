@@ -1,6 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
-import HazardMap from "./components/HazardMap";
+import dynamic from "next/dynamic";
+
+const HazardMap = dynamic(() => import("./components/HazardMap"), {
+  ssr: false,
+});
+// import HazardMap from "./components/HazardMap";
 
 export default function Home() {
   const [hazards, setHazards] = useState([]);
