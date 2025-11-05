@@ -1,8 +1,10 @@
 import os
 import psycopg2
 from flask import Flask, jsonify
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)  # ← Enable CORS for all routes
 
 def get_conn():
     return psycopg2.connect(os.environ["DATABASE_URL"])
@@ -18,7 +20,7 @@ def get_stats():
         cur = conn.cursor()
         cur.execute("""
             SELECT id, reported_at, image_url, latitude, longitude, hazard_type, source
-            FROM road_hazard_raw_data_db
+            FROM road_hazard_raw_data
         """)
         rows = cur.fetchall()
         cur.close()
@@ -36,6 +38,5 @@ def get_stats():
             }
             for r in rows
         ])
-
     except Exception as e:
         return str(e), 500

@@ -24,7 +24,6 @@ export default function Home() {
     <div className="p-6 max-w-5xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Road Hazard Dashboard</h1>
 
-      <h2>123</h2>
       <div className="space-y-4">
         {hazards.map((h) => (
           <div key={h.id} className="p-4 border rounded-lg shadow-sm bg-white">
