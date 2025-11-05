@@ -58,3 +58,23 @@ def stream():
                 yield "data: update\n\n"
             time.sleep(1)
     return Response(stream_with_context(event_stream()), mimetype="text/event-stream")
+
+import threading
+import psycopg2.extensions
+
+def db_listener():
+    conn = get_conn()
+    conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+    cur = conn.cursor()
+    cur.execute("LISTEN hazard_updates;")
+    print("🔊 Listening for DB hazard updates...")
+
+    while True:
+        conn.poll()
+        while conn.notifies:
+            notify = conn.notifies.pop(0)
+            print("⚡ Database changed:", notify.payload)
+            notify_update()    # 🔥 Triggers SSE frontend updates
+
+
+threading.Thread(target=db_listener, daemon=True).start()
