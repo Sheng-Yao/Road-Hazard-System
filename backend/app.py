@@ -20,7 +20,7 @@ def get_stats():
         cur = conn.cursor()
         cur.execute("""
             SELECT id, reported_at, image_url, latitude, longitude, hazard_type, source
-            FROM road_hazard_raw_data
+            FROM road_hazard_raw_data_db
         """)
         rows = cur.fetchall()
         cur.close()
