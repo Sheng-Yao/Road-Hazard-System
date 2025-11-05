@@ -6,7 +6,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   // TODO: Replace with your real backend URL:
-  const API_URL = "https://YOUR-BACKEND.onrender.com/stats";
+  const API_URL = "https://road-hazard-system.onrender.com/stats";
 
   useEffect(() => {
     fetch(API_URL)
