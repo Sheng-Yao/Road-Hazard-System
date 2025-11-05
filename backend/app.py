@@ -19,7 +19,7 @@ def get_stats():
         conn = get_conn()
         cur = conn.cursor()
         cur.execute("""
-            SELECT id, reported_at, image_url, latitude, longitude, hazard_type, source
+            SELECT id, reported_at, image_url, latitude, longitude, hazard_type, device_ID
             FROM road_hazard_raw_data_db
         """)
         rows = cur.fetchall()
@@ -34,7 +34,7 @@ def get_stats():
                 "latitude": r[3],
                 "longitude": r[4],
                 "hazard_type": r[5],
-                "source": r[6]
+                "device_ID": r[6]
             }
             for r in rows
         ])
