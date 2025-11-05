@@ -7,6 +7,10 @@ app = Flask(__name__)
 def get_conn():
     return psycopg2.connect(os.environ["DATABASE_URL"])
 
+@app.route("/")
+def home():
+    return "Backend is running!"
+
 @app.route("/stats")
 def get_stats():
     try:
@@ -35,7 +39,3 @@ def get_stats():
 
     except Exception as e:
         return str(e), 500
-
-@app.route("/")
-def home():
-    return "Backend is running!"
