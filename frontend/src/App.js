@@ -4,7 +4,7 @@ function App() {
   const [stats, setStats] = useState([]);
 
   useEffect(() => {
-    fetch("https://your-backend.onrender.com/stats")
+    fetch("https://road-hazard-system.onrender.com/stats")
       .then((res) => res.json())
       .then(setStats);
   }, []);
