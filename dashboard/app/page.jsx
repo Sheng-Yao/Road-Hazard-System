@@ -13,14 +13,29 @@ export default function Home() {
 
   const API_URL = "https://road-hazard-system.onrender.com/stats";
 
-  useEffect(() => {
+  // Fetch hazards once when page loads
+  const fetchHazards = () => {
     fetch(API_URL)
       .then((res) => res.json())
       .then((data) => {
         setHazards(data);
         setLoading(false);
-      })
-      .catch(() => setLoading(false));
+      });
+  };
+
+  useEffect(() => {
+    fetchHazards();
+
+    // Listen to SSE notifications
+    const events = new EventSource(
+      "https://road-hazard-system.onrender.com/stream"
+    );
+
+    events.onmessage = () => {
+      fetchHazards(); // Re-fetch ONLY when backend says there’s new data
+    };
+
+    return () => events.close();
   }, []);
 
   if (loading) return <div className="p-6">Loading data...</div>;

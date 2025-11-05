@@ -1,10 +1,17 @@
 import os
 import psycopg2
-from flask import Flask, jsonify
+from flask import Flask, Response, stream_with_context, json
 from flask_cors import CORS
+import time
 
 app = Flask(__name__)
 CORS(app)  # ← Enable CORS for all routes
+
+last_update_time = time.time()
+
+def notify_update():
+    global last_update_time
+    last_update_time = time.time()
 
 def get_conn():
     return psycopg2.connect(os.environ["DATABASE_URL"])
@@ -40,3 +47,14 @@ def get_stats():
         ])
     except Exception as e:
         return str(e), 500
+    
+@app.route("/stream")
+def stream():
+    def event_stream():
+        last_sent = 0
+        while True:
+            if last_sent != last_update_time:
+                last_sent = last_update_time
+                yield "data: update\n\n"
+            time.sleep(1)
+    return Response(stream_with_context(event_stream()), mimetype="text/event-stream")
