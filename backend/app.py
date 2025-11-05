@@ -1,4 +1,5 @@
-import psycopg2, os
+import os
+import psycopg2
 from flask import Flask, jsonify
 
 app = Flask(__name__)
@@ -12,5 +13,10 @@ def get_stats():
     cur = conn.cursor()
     cur.execute("SELECT name, value FROM stats;")
     rows = cur.fetchall()
+    cur.close()
     conn.close()
     return jsonify([{"name": r[0], "value": r[1]} for r in rows])
+
+@app.route("/")
+def home():
+    return "Backend is running!"
