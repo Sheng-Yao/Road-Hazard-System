@@ -58,7 +58,7 @@ export default function Home() {
               <b>Location:</b> {h.latitude}, {h.longitude}
             </p>
             <p>
-              <b>Device ID:</b> {h.device_ID}
+              <b>Device ID:</b> {h.device_id}
             </p>
             {h.image_url && (
               <img

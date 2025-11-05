@@ -1,6 +1,6 @@
 import os
 import psycopg2
-from flask import Flask, Response, stream_with_context, json
+from flask import Flask, Response, stream_with_context, json, jsonify
 from flask_cors import CORS
 import time
 
@@ -26,7 +26,7 @@ def get_stats():
         conn = get_conn()
         cur = conn.cursor()
         cur.execute("""
-            SELECT id, reported_at, image_url, latitude, longitude, hazard_type, device_ID
+            SELECT id, reported_at, image_url, latitude, longitude, hazard_type, device_id
             FROM road_hazard_raw_data_db
         """)
         rows = cur.fetchall()
@@ -41,7 +41,7 @@ def get_stats():
                 "latitude": r[3],
                 "longitude": r[4],
                 "hazard_type": r[5],
-                "device_ID": r[6]
+                "device_id": r[6]
             }
             for r in rows
         ])
