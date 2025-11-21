@@ -46,7 +46,7 @@ export default function HazardMap({ highlightHazard }) {
     async function loadData() {
       try {
         const res = await fetch(
-          "https://road-hazard-api.road-hazard-system.workers.dev/stats"
+          "https://road-hazard-api.road-hazard-system.workers.dev/hazard-map"
         ); // <- update URL if deployed
         const data = await res.json();
         setHazards(data);
@@ -97,7 +97,7 @@ export default function HazardMap({ highlightHazard }) {
 
               <p>
                 <span className="font-semibold">Volume:</span>{" "}
-                {h.volume_required}
+                {h.volume_material_required}
               </p>
 
               <p>
