@@ -36,7 +36,7 @@ export default {
         const { data, error } = await supabase
           .from("road_hazard_final_db")
           .select(
-            "id, reported_at, image_url, latitude, longitude, hazard_type, risk_level, repair_material, volume_required, manpower_required"
+            "id, reported_at, image_url, latitude, longitude, hazard_type, risk_level, repair_material, volume_material_required, manpower_required"
           )
           .order("reported_at", { ascending: false })
           .limit(50);
