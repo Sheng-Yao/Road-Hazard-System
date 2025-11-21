@@ -6,7 +6,7 @@ export default function HazardMap() {
   return (
     <MapContainer
       center={defaultPosition}
-      zoom={10}
+      zoom={11}
       scrollWheelZoom={true}
       zoomControl={false}
       attributionControl={false}
