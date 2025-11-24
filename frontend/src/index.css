@@ -5,3 +5,14 @@
   max-width: 600px !important;
   width: auto !important;
 }
+
+/* Hide scrollbar only on mobile (<768px) */
+@media (max-width: 768px) {
+  .mobile-hide-scroll::-webkit-scrollbar {
+    display: none;
+  }
+  .mobile-hide-scroll {
+    -ms-overflow-style: none; /* IE & Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+}

@@ -6,6 +6,10 @@ export default function ListModal({ onClose, onHighlight }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const isMobile = window.innerWidth < 768;
+  const [mobilePage, setMobilePage] = useState("list");
+  // "list" | "details"
+
   // if (!selectedHazard) return null; // prevents crash
 
   const jobList = selectedHazard?.job_distribution
@@ -64,7 +68,13 @@ export default function ListModal({ onClose, onHighlight }) {
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"></div>
 
       {/* Modal Container */}
-      <div className="fixed top-20 left-1/2 -translate-x-1/2 w-[90%] max-w-[1200px] h-[85%] bg-white text-black rounded-lg shadow-lg z-50 flex flex-col">
+      <div
+        className={`fixed ${
+          isMobile
+            ? "top-0 w-full h-full left-0"
+            : "top-20 left-1/2 -translate-x-1/2 w-[90%] max-w-[1200px] h-[85%]"
+        } bg-white text-black rounded-lg shadow-lg z-50 flex flex-col`}
+      >
         {/* Header Row */}
         <div className="flex justify-between items-center border-b px-6 py-3">
           <h2 className="text-2xl font-bold">Hazard List</h2>
@@ -79,56 +89,66 @@ export default function ListModal({ onClose, onHighlight }) {
 
         {/* Display API results */}
         <div className="flex flex-1 overflow-hidden px-6 py-4">
-          {/* LEFT — LIST */}
-          <div className="w-1/3 overflow-y-auto border-r pr-4 h-full">
-            {loading && (
-              <p className="text-gray-500 text-center mt-10">
-                Loading hazards...
-              </p>
-            )}
+          {/* LEFT — LIST PAGE */}
+          {(!isMobile || mobilePage === "list") && (
+            <div
+              className={`${
+                isMobile ? "w-full" : "w-1/3"
+              } overflow-y-auto border-r pr-4 h-full`}
+            >
+              {loading && (
+                <p className="text-gray-500 text-center mt-10">
+                  Loading hazards...
+                </p>
+              )}
 
-            {error && <p className="text-red-500 text-center mt-10">{error}</p>}
+              {error && (
+                <p className="text-red-500 text-center mt-10">{error}</p>
+              )}
 
-            {!loading && !error && hazards.length === 0 && (
-              <p className="text-gray-500 text-center mt-10">
-                No hazards found.
-              </p>
-            )}
+              {!loading && !error && hazards.length === 0 && (
+                <p className="text-gray-500 text-center mt-10">
+                  No hazards found.
+                </p>
+              )}
 
-            {hazards.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => loadHazardDetails(item.id)}
-                className="flex items-center justify-between border p-4 rounded shadow-sm mb-3 cursor-pointer hover:bg-gray-100"
-              >
-                {/* Left: Text */}
-                <div>
-                  <p className="font-bold capitalize">{item.hazard_type}</p>
+              {hazards.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => {
+                    loadHazardDetails(item.id);
+                    if (isMobile) setMobilePage("details"); // <-- mobile behavior
+                  }}
+                  className="flex items-center justify-between border p-4 rounded shadow-sm mb-3 cursor-pointer hover:bg-gray-100"
+                >
+                  <div>
+                    <p className="font-bold capitalize">{item.hazard_type}</p>
+                    <p className="text-sm text-gray-600">State: {item.state}</p>
+                    <p className="text-sm">Risk Level: {item.risk_level}</p>
+                    <p className="text-[10px] text-gray-400">
+                      {new Date(item.reported_at).toLocaleString()}
+                    </p>
+                  </div>
 
-                  <p className="text-sm text-gray-600">State: {item.state}</p>
-
-                  <p className="text-sm">Risk Level: {item.risk_level}</p>
-
-                  <p className="text-[10px] text-gray-400">
-                    {new Date(item.reported_at).toLocaleString()}
-                  </p>
+                  {item.image_url && (
+                    <img
+                      src={item.image_url}
+                      className="h-24 w-24 object-cover rounded"
+                      alt="preview"
+                    />
+                  )}
                 </div>
+              ))}
+            </div>
+          )}
 
-                {/* Right: Thumbnail */}
-                {item.image_url && (
-                  <img
-                    src={item.image_url}
-                    className="h-24 w-24 object-cover rounded"
-                    alt="preview"
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-          {/* RIGHT — DETAILS */}
-          <div className="w-2/3 pl-4 overflow-y-auto h-full">
-            {selectedHazard && (
-              <div className="space-y-4">
+          {/* RIGHT — DETAILS PAGE */}
+          {selectedHazard && (!isMobile || mobilePage === "details") && (
+            <div
+              className={`${isMobile ? "w-full mobile-hide-scroll" : "w-2/3"} 
+              pl-4 overflow-y-auto h-full justify-center`}
+            >
+              <div className="max-w-[600px] w-full space-y-4">
                 <h3 className="text-2xl font-bold">
                   {selectedHazard.hazard_type}
                 </h3>
@@ -162,12 +182,14 @@ export default function ListModal({ onClose, onHighlight }) {
                 <p>
                   <strong>Material:</strong> {selectedHazard.repair_material}
                 </p>
+
                 <p className="font-semibold">Material Reason:</p>
                 <ul className="list-disc ml-5 text-sm mt-2">
                   {materialReasonList.map((r, i) => (
                     <li key={i}>{r}</li>
                   ))}
                 </ul>
+
                 <p>
                   <strong>Required Volume:</strong>{" "}
                   {selectedHazard.volume_material_required}
@@ -187,6 +209,7 @@ export default function ListModal({ onClose, onHighlight }) {
                     <li key={i}>{item}</li>
                   ))}
                 </ul>
+
                 <div className="mt-4 p-3 bg-gray-100 rounded">
                   <p className="font-semibold">Repair Guide:</p>
                   <ul className="list-decimal ml-5 text-sm mt-2">
@@ -196,18 +219,29 @@ export default function ListModal({ onClose, onHighlight }) {
                   </ul>
                 </div>
 
-                <button
-                  onClick={() => {
-                    onClose();
-                    onHighlight(selectedHazard);
-                  }}
-                  className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
-                >
-                  Highlight on Map
-                </button>
+                <div className="flex gap-3 mt-4">
+                  {isMobile && (
+                    <button
+                      onClick={() => setMobilePage("list")}
+                      className="px-3 py-2 bg-gray-200 rounded cursor-pointer"
+                    >
+                      ← Back to List
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      onClose();
+                      onHighlight(selectedHazard);
+                    }}
+                    className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
+                  >
+                    Highlight on Map
+                  </button>
+                </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </>
