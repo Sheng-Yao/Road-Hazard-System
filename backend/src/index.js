@@ -21,25 +21,10 @@ export default {
         const { data, error } = await supabase
           .from("road_hazard_final_db")
           .select(
-            `
-              id,
-              reported_at,
-              image_url,
-              latitude,
-              longitude,
-              hazard_type,
-              state,
-              risk_level,
-
-              repair_tracker:repair_tracker_db (
-                  team_assigned_at,
-                  in_progress_at,
-                  completed_at
-              )
-          `
+            "id,reported_at,image_url,latitude,longitude,hazard_type,state,risk_level"
           )
           .order("risk_level", { ascending: false })
-          .limit(50);
+          .limit(200);
 
         if (error) throw error;
 
