@@ -15,6 +15,11 @@ export default function ListModal({
   const isMobile = window.innerWidth < 768;
   const [mobilePage, setMobilePage] = useState("list");
 
+  const API_BASE = "https://road-hazard-api.road-hazard-system.workers.dev";
+
+  // NEW: store progress per hazard
+  const [progressData, setProgressData] = useState({});
+
   const jobList = useMemo(() => {
     if (!selectedHazard) return [];
     try {
@@ -54,9 +59,7 @@ export default function ListModal({
   useEffect(() => {
     async function fetchHazards() {
       try {
-        const res = await fetch(
-          "https://road-hazard-api.road-hazard-system.workers.dev/stats"
-        );
+        const res = await fetch(`${API_BASE}/stats`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const data = await res.json();
@@ -72,11 +75,44 @@ export default function ListModal({
     fetchHazards();
   }, []);
 
+  // Load progress for all hazards one-by-one (non-blocking)
+  useEffect(() => {
+    if (hazards.length === 0) return;
+
+    let index = 0;
+
+    function loadNext() {
+      if (index >= hazards.length) return;
+
+      const id = hazards[index].id;
+
+      // skip if already loaded
+      if (!progressData[id]) {
+        fetch(`${API_BASE}/repair/${id}`)
+          .then((res) => res.json())
+          .then((data) => {
+            setProgressData((prev) => ({
+              ...prev,
+              [id]: data || {},
+            }));
+          })
+          .catch((err) => console.error("Progress load failed:", err));
+      }
+
+      index++;
+
+      // Slight delay = smoother UI + prevents API spike
+      setTimeout(loadNext, 120);
+    }
+
+    loadNext();
+  }, [hazards]);
+
   /* -----------------------------------------------
       NEW: Helper to display last progress text
   -------------------------------------------------- */
   function getLatestProgressText(t) {
-    if (!t) return "No Progress";
+    if (!t || Object.keys(t).length === 0) return "No Progress";
 
     if (t.completed_at)
       return "Completed: " + new Date(t.completed_at).toLocaleString();
@@ -90,9 +126,7 @@ export default function ListModal({
 
   async function loadHazardDetails(id) {
     try {
-      const res = await fetch(
-        `https://road-hazard-api.road-hazard-system.workers.dev/hazard/${id}`
-      );
+      const res = await fetch(`${API_BASE}/hazard/${id}`);
 
       const data = await res.json();
       setSelectedHazard(data);
@@ -136,7 +170,10 @@ export default function ListModal({
   }) {
     return (
       <div
-        onClick={() => handleClick(item.id)}
+        onClick={() => {
+          loadHazardDetails(item.id);
+          if (isMobile) setMobilePage("details");
+        }}
         className={`flex items-center justify-between border p-4 rounded shadow-sm mb-3 cursor-pointer ${
           selected
             ? "bg-blue-100 border-blue-400"
@@ -226,7 +263,7 @@ export default function ListModal({
                   key={item.id}
                   item={item}
                   selected={selectedHazard?.id === item.id}
-                  progress={item.repair_tracker}
+                  progress={progressData[item.id]}
                 />
               ))}
             </div>
