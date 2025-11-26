@@ -32,31 +32,32 @@ export default function RepairModal({ hazard, onClose }) {
   }
 
   async function handleSubmit() {
-    const now = new Date().toISOString();
+    if (!status) {
+      alert("Please select a repair status.");
+      return;
+    }
 
-    const timestamps = {
-      reported_at: hazard.reported_at || now,
-      team_assigned_at: status === "assigned" ? now : hazard.team_assigned_at,
-      on_the_way_at: status === "on_the_way" ? now : hazard.on_the_way_at,
-      in_progress_at: status === "in_progress" ? now : hazard.in_progress_at,
-      completed_at: status === "completed" ? now : hazard.completed_at,
-
-      worker: assignedTo, // ← Save who was assigned
+    const payload = {
+      status, // <-- REQUIRED for backend
+      worker: assignedTo || null,
+      photo_url: null, // (You will handle real uploads later)
     };
 
-    await fetch(`${API_BASE}/update-repair/${hazard.id}`, {
+    const res = await fetch(`${API_BASE}/update-repair/${hazard.id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(timestamps),
+      body: JSON.stringify(payload),
     });
 
+    const result = await res.json();
+
+    if (!res.ok) {
+      alert(result.error || "Failed to update progress.");
+      return;
+    }
+
     alert("Repair progress updated!");
-
-    // ❌ Do not upload image
-    // ❌ Do not save image
-    // ✔ Clear image from UI
     setUpload(null);
-
     onClose();
   }
 
