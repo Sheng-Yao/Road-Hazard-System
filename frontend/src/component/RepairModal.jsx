@@ -11,12 +11,19 @@ export default function RepairModal({ hazard, onClose }) {
   // Fetch workers from DB
   useEffect(() => {
     async function loadWorkers() {
-      const res = await fetch(`${API_BASE}/workers`);
+      const res = await fetch(
+        "https://road-hazard-api.road-hazard-system.workers.dev/workers"
+      );
       const data = await res.json();
       setWorkers(data);
     }
     loadWorkers();
   }, []);
+
+  function getWorkerName(id) {
+    const worker = workers.find((w) => w.id === id);
+    return worker ? worker.name : "Unassigned";
+  }
 
   // Auto-select worker based on backend data
   useEffect(() => {
@@ -39,7 +46,7 @@ export default function RepairModal({ hazard, onClose }) {
 
     const payload = {
       status, // <-- REQUIRED for backend
-      worker: assignedTo || null,
+      worker_id: assignedTo || null,
       photo_url: null, // (You will handle real uploads later)
     };
 
@@ -127,9 +134,8 @@ export default function RepairModal({ hazard, onClose }) {
           className="w-full border p-2 rounded mb-4"
         >
           <option value="">Select Personnel</option>
-
           {workers.map((w) => (
-            <option key={w.id} value={w.name}>
+            <option key={w.id} value={w.id}>
               {w.name}
             </option>
           ))}

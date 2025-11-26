@@ -101,7 +101,7 @@ export default {
         const id = path.split("/").pop();
         const body = await request.json();
 
-        const { status, worker, photo_url } = body;
+        const { status, worker_id, photo_url } = body;
 
         // ============================================================
         // 1️⃣ Fetch existing row first (needed for forward-only checks)
@@ -146,7 +146,8 @@ export default {
         if (status === "completed")
           updateData.completed_at = new Date().toISOString();
 
-        if (worker) updateData.worker = worker;
+        if (worker_id) updateData.worker_id = worker_id;
+
         if (photo_url) updateData.photo_url = photo_url;
 
         // ============================================================
