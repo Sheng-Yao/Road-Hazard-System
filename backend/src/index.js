@@ -75,9 +75,9 @@ export default {
         const { data, error } = await supabase
           .from("repair_tracker_db")
           .select(
-            "id, worker_id, team_assigned_at, in_progress_at, completed_at, photo_url"
+            "id, reported_at, team_assigned_at, in_progress_at, completed_at, worker_id"
           )
-          .eq("hazard_id", id)
+          .eq("id", id)
           .maybeSingle();
 
         if (error) throw error;
@@ -94,7 +94,7 @@ export default {
         const { data: current, error: fetchErr } = await supabase
           .from("repair_tracker_db")
           .select("*")
-          .eq("hazard_id", id)
+          .eq("id", id)
           .maybeSingle();
 
         if (fetchErr) throw fetchErr;
@@ -132,7 +132,7 @@ export default {
         const { data, error } = await supabase
           .from("repair_tracker_db")
           .update(updateData)
-          .eq("hazard_id", id)
+          .eq("id", id)
           .select()
           .maybeSingle();
 
