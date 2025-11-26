@@ -136,17 +136,17 @@ export default function ListModal({
     }
   }
 
-  useEffect(() => {
-    // Only run after hazards list is loaded
-    if (!loading && initialHazardId) {
-      loadHazardDetails(initialHazardId);
+  // useEffect(() => {
+  //   // Only run after hazards list is loaded
+  //   if (!loading && initialHazardId) {
+  //     loadHazardDetails(initialHazardId);
 
-      // On mobile, jump straight to the details screen
-      if (isMobile) {
-        setMobilePage("details");
-      }
-    }
-  }, [loading, initialHazardId]);
+  //     // On mobile, jump straight to the details screen
+  //     if (isMobile) {
+  //       setMobilePage("details");
+  //     }
+  //   }
+  // }, [loading, initialHazardId]);
 
   function resetState() {
     setSelectedHazard(null);
@@ -186,6 +186,14 @@ export default function ListModal({
     if (progress.team_assigned_at) return "assigned";
     return "reported";
   }
+
+  // NEW — Load details immediately when coming from map
+  useEffect(() => {
+    if (initialHazardId) {
+      loadHazardDetails(initialHazardId);
+      if (isMobile) setMobilePage("details");
+    }
+  }, [initialHazardId]);
 
   const HazardItem = React.memo(function HazardItem({
     item,
@@ -309,112 +317,120 @@ export default function ListModal({
               className={`${isMobile ? "w-full mobile-hide-scroll" : "w-2/3"} 
                pl-4 md:pr-10 lg:pr-16 overflow-y-auto h-full justify-center`}
             >
-              <div className="max-w-[600px] w-full space-y-4 mx-auto">
-                <h3 className="text-2xl font-bold">
-                  {selectedHazard.hazard_type}
-                </h3>
+              {/* NEW: Show loading message BEFORE selectedHazard is ready */}
+              {!selectedHazard ? (
+                <div className="p-4 text-center text-gray-400">
+                  Loading hazard details...
+                </div>
+              ) : (
+                <div className="max-w-[600px] w-full space-y-4 mx-auto">
+                  <h3 className="text-2xl font-bold">
+                    {selectedHazard.hazard_type}
+                  </h3>
 
-                <img
-                  loading="lazy"
-                  src={selectedHazard.image_url}
-                  className="w-full max-h-64 object-cover rounded mb-4"
-                  alt="hazard"
-                />
+                  <img
+                    loading="lazy"
+                    src={selectedHazard.image_url}
+                    className="w-full max-h-64 object-cover rounded mb-4"
+                    alt="hazard"
+                  />
 
-                <p>
-                  <strong>Risk Level:</strong> {selectedHazard.risk_level}
-                </p>
-                <p className="font-semibold">Risk Reason:</p>
-                <ul className="list-disc ml-5 text-sm mt-2">
-                  {riskReasonList.map((reason, i) => (
-                    <li key={i}>{reason}</li>
-                  ))}
-                </ul>
-
-                <p>
-                  <strong>Location:</strong>{" "}
-                  {selectedHazard.latitude.toFixed(5)},{" "}
-                  {selectedHazard.longitude.toFixed(5)}
-                </p>
-
-                <hr className="my-4" />
-
-                <h4 className="text-xl font-semibold">Repair Information</h4>
-
-                <p>
-                  <strong>Material:</strong> {selectedHazard.repair_material}
-                </p>
-
-                <p className="font-semibold">Material Reason:</p>
-                <ul className="list-disc ml-5 text-sm mt-2">
-                  {materialReasonList.map((r, i) => (
-                    <li key={i}>{r}</li>
-                  ))}
-                </ul>
-
-                <p>
-                  <strong>Required Volume:</strong>{" "}
-                  {selectedHazard.volume_material_required}
-                </p>
-                <p>
-                  <strong>Calculation:</strong>{" "}
-                  {selectedHazard.volume_calculation}
-                </p>
-
-                <p>
-                  <strong>Manpower:</strong> {selectedHazard.manpower_required}
-                </p>
-
-                <p className="font-semibold">Task Breakdown:</p>
-                <ul className="list-disc ml-5 text-sm mt-2">
-                  {jobList.map((item, i) => (
-                    <li key={i}>{item}</li>
-                  ))}
-                </ul>
-
-                <div className="mt-4 p-3 bg-gray-100 rounded">
-                  <p className="font-semibold">Repair Guide:</p>
-                  <ul className="list-decimal ml-5 text-sm mt-2">
-                    {guideList.map((step, i) => (
-                      <li key={i}>{step}</li>
+                  <p>
+                    <strong>Risk Level:</strong> {selectedHazard.risk_level}
+                  </p>
+                  <p className="font-semibold">Risk Reason:</p>
+                  <ul className="list-disc ml-5 text-sm mt-2">
+                    {riskReasonList.map((reason, i) => (
+                      <li key={i}>{reason}</li>
                     ))}
                   </ul>
-                </div>
 
-                <div className="flex gap-3 mt-4">
-                  {isMobile && (
+                  <p>
+                    <strong>Location:</strong>{" "}
+                    {selectedHazard.latitude.toFixed(5)},{" "}
+                    {selectedHazard.longitude.toFixed(5)}
+                  </p>
+
+                  <hr className="my-4" />
+
+                  <h4 className="text-xl font-semibold">Repair Information</h4>
+
+                  <p>
+                    <strong>Material:</strong> {selectedHazard.repair_material}
+                  </p>
+
+                  <p className="font-semibold">Material Reason:</p>
+                  <ul className="list-disc ml-5 text-sm mt-2">
+                    {materialReasonList.map((r, i) => (
+                      <li key={i}>{r}</li>
+                    ))}
+                  </ul>
+
+                  <p>
+                    <strong>Required Volume:</strong>{" "}
+                    {selectedHazard.volume_material_required}
+                  </p>
+                  <p>
+                    <strong>Calculation:</strong>{" "}
+                    {selectedHazard.volume_calculation}
+                  </p>
+
+                  <p>
+                    <strong>Manpower:</strong>{" "}
+                    {selectedHazard.manpower_required}
+                  </p>
+
+                  <p className="font-semibold">Task Breakdown:</p>
+                  <ul className="list-disc ml-5 text-sm mt-2">
+                    {jobList.map((item, i) => (
+                      <li key={i}>{item}</li>
+                    ))}
+                  </ul>
+
+                  <div className="mt-4 p-3 bg-gray-100 rounded">
+                    <p className="font-semibold">Repair Guide:</p>
+                    <ul className="list-decimal ml-5 text-sm mt-2">
+                      {guideList.map((step, i) => (
+                        <li key={i}>{step}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="flex gap-3 mt-4">
+                    {isMobile && (
+                      <button
+                        onClick={() => {
+                          setMobilePage("list");
+                          setSelectedHazard(null);
+                        }}
+                        className="px-3 py-2 bg-gray-200 rounded cursor-pointer"
+                      >
+                        ← Back to List
+                      </button>
+                    )}
+
                     <button
                       onClick={() => {
-                        setMobilePage("list");
-                        setSelectedHazard(null);
+                        resetState();
+                        onClose();
+                        onHighlight(selectedHazard);
                       }}
-                      className="px-3 py-2 bg-gray-200 rounded cursor-pointer"
+                      className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
                     >
-                      ← Back to List
+                      Highlight on Map
                     </button>
-                  )}
 
-                  <button
-                    onClick={() => {
-                      resetState();
-                      onClose();
-                      onHighlight(selectedHazard);
-                    }}
-                    className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
-                  >
-                    Highlight on Map
-                  </button>
-
-                  <button
-                    onClick={() =>
-                      onShowRepairModal && onShowRepairModal(selectedHazard)
-                    }
-                    className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 cursor-pointer"
-                  >
-                    Track Repair Progress
-                  </button>
+                    <button
+                      onClick={() =>
+                        onShowRepairModal && onShowRepairModal(selectedHazard)
+                      }
+                      className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 cursor-pointer"
+                    >
+                      Track Repair Progress
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
         </div>
