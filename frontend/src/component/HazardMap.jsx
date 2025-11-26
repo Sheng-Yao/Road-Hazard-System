@@ -9,7 +9,7 @@ const alertIcon = new L.Icon({
   popupAnchor: [0, -64],
 });
 
-function MapHighlighter({ highlightHazard, markerRefs }) {
+function MapHighlighter({ highlightHazard, markerRefs, onShowDetailsFromMap }) {
   const map = useMap();
   // setTimeout(() => {
   //   const marker = markerRefs.current?.[highlightHazard.id];
@@ -20,32 +20,67 @@ function MapHighlighter({ highlightHazard, markerRefs }) {
     if (!highlightHazard) return;
 
     const latlng = [highlightHazard.latitude, highlightHazard.longitude];
-
+    // Detect if zoom will change
+    const willZoom = map.getZoom() !== 16;
     // Step 1: Move to location
     map.setView(latlng, 16, { animate: true });
-
-    // Step 2: After move is done → pan + popup
-    const handleMoveEnd = () => {
-      // pan upward so popup is fully visible
-      map.panBy([0, -220], { animate: true });
-
-      // open popup
+    // Realign popup after zoom/move + after popup finishes rendering
+    const realign = () => {
       const marker = markerRefs.current?.[highlightHazard.id];
-      if (marker) marker.openPopup();
+      if (!marker) return;
 
-      // ⭐ VERY IMPORTANT: remove listener after first run
+      // Open popup
+      marker.openPopup();
+
+      // Allow popup DOM to be created
+      setTimeout(() => {
+        const popup = marker.getPopup();
+        if (!popup) return;
+
+        popup.update(); // force recalculation
+
+        const popupEl = popup.getElement();
+        if (!popupEl) return;
+
+        const popupHeight = popupEl.offsetHeight;
+
+        // Pan map upward according to TRUE popup height
+        const offset = popupHeight / 2 + 40;
+
+        map.panBy([0, -offset], { animate: true });
+      }, 50);
+    };
+
+    const handleZoomEnd = () => {
+      realign();
+      map.off("zoomend", handleZoomEnd);
       map.off("moveend", handleMoveEnd);
     };
 
-    map.on("moveend", handleMoveEnd);
+    const handleMoveEnd = () => {
+      realign();
+      map.off("moveend", handleMoveEnd);
+      map.off("zoomend", handleZoomEnd);
+    };
 
-    return () => map.off("moveend", handleMoveEnd);
+    // If zoom changes → wait for zoomend
+    if (willZoom) map.on("zoomend", handleZoomEnd);
+    else map.on("moveend", handleMoveEnd);
+
+    return () => {
+      map.off("zoomend", handleZoomEnd);
+      map.off("moveend", handleMoveEnd);
+    };
   }, [highlightHazard]);
 
   return null;
 }
 
-export default function HazardMap({ highlightHazard, onHighlight }) {
+export default function HazardMap({
+  highlightHazard,
+  onHighlight,
+  onShowDetailsFromMap,
+}) {
   const defaultPosition = [2.945747, 101.87509]; // Singapore center (change if needed)
   const [hazards, setHazards] = useState([]);
   const markerRefs = useRef({});
@@ -98,12 +133,12 @@ export default function HazardMap({ highlightHazard, onHighlight }) {
           }}
         >
           <Popup
-            maxWidth={400}
+            maxWidth={250}
             className="popup-custom"
             autoPan={false}
             keepInView={true}
           >
-            <div className="space-y-0.5 text-sm leading-snug w-full">
+            <div className="text-sm leading-snug w-full space-y-1">
               <h3 className="text-lg font-bold">{h.hazard_type}</h3>
               {/* Bold Labels + Normal Text */}
               <p>
@@ -117,15 +152,26 @@ export default function HazardMap({ highlightHazard, onHighlight }) {
                 <br />
                 <span className="font-semibold">Manpower:</span>{" "}
                 {h.manpower_required}
-                {/* Image */}
-                {h.image_url && (
-                  <img
-                    src={h.image_url}
-                    alt={h.hazard_type}
-                    className="mt-3 max-w-[300px] h-auto rounded shadow-lg"
-                  />
-                )}
               </p>
+              {/* Image */}
+              {h.image_url && (
+                <img
+                  src={h.image_url}
+                  alt={h.hazard_type}
+                  className="mt-1 max-w-[250px] h-auto rounded shadow-lg"
+                />
+              )}
+
+              <button
+                className="w-full mt-3 px-3 py-2 bg-gray-200 hover:bg-gray-300 rounded text-center cursor-pointer"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onShowDetailsFromMap(h); // ↩ Call function from App.jsx
+                }}
+              >
+                View Full Details →
+              </button>
             </div>
           </Popup>
         </Marker>

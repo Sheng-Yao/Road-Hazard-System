@@ -3,6 +3,7 @@ import roadImg from "./assets/road.png";
 
 import HazardMap from "./component/HazardMap.jsx";
 import ListModal from "./component/ListModal.jsx";
+import RepairModal from "./component/RepairModal.jsx";
 
 const isMobile = window.innerWidth < 768;
 
@@ -15,22 +16,45 @@ export default function App() {
   const [mobileView, setMobileView] = useState(isMobile);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const [showRepairModal, setShowRepairModal] = useState(false);
+  const [repairHazard, setRepairHazard] = useState(null);
+
+  function showHazardDetailsFromMap(hazard) {
+    setHighlightHazard(hazard); // focus & open popup
+    setActiveTab("list"); // switch to list
+    setShowList(true); // show modal
+  }
+
+  function handleShowDetailsFromMap(hazard) {
+    setHighlightHazard(hazard); // Tell ListModal which hazard to open
+    setActiveTab("list");
+    setShowList(true);
+  }
+
+  function handleShowRepairModal(hazard) {
+    setRepairHazard(hazard);
+    setShowRepairModal(true);
+  }
+
   return (
     <div className="h-screen w-screen overflow-hidden relative">
       {/* ✅ MOBILE HEADER (only shows on mobile) */}
-      <header
-        className="flex md:hidden items-center justify-between p-2 
-                      bg-black/70 text-white fixed top-0 left-0 w-full z-50 shadow-md h-12"
-      >
-        <h1 className="text-md font-bold">Road Hazard System</h1>
-
-        <button
-          className="text-white text-xl cursor-pointer"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+      {/* MOBILE HEADER — hide when list is open */}
+      {!showList && (
+        <header
+          className="flex md:hidden items-center justify-between p-2 
+               bg-black/70 text-white fixed top-0 left-0 w-full z-50 shadow-md h-12"
         >
-          ☰
-        </button>
-      </header>
+          <h1 className="text-md font-bold">Road Hazard System</h1>
+
+          <button
+            className="text-white text-xl cursor-pointer"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            ☰
+          </button>
+        </header>
+      )}
 
       {/* ✅ MOBILE DROPDOWN MENU */}
       {mobileMenuOpen && (
@@ -126,18 +150,42 @@ export default function App() {
         <HazardMap
           highlightHazard={highlightHazard}
           onHighlight={setHighlightHazard}
+          onShowDetailsFromMap={showHazardDetailsFromMap}
         />
       </main>
       {activeTab === "list" && showList && (
-        <ListModal
-          onClose={() => {
-            setShowList(false);
-            setActiveTab("map");
-          }}
-          onHighlight={(hazard) => {
-            setHighlightHazard(hazard);
-            setShowList(false); // close modal here
-          }}
+        <div className="relative z-20">
+          {/* 🌑 Full dark overlay above map & list — only when RepairModal is visible */}
+          {showRepairModal && (
+            <div className="fixed inset-0 bg-black/60 z-30"></div>
+          )}
+
+          {/* List Modal (dimmed slightly when RepairModal opens) */}
+          <div
+            className={`relative z-40 transition ${
+              showRepairModal ? "opacity-30" : "opacity-100"
+            }`}
+          >
+            <ListModal
+              initialHazardId={highlightHazard?.id}
+              onClose={() => {
+                setShowList(false);
+                setActiveTab("map");
+                setHighlightHazard(null);
+              }}
+              onHighlight={(hazard) => {
+                setHighlightHazard(hazard);
+                setShowList(false);
+              }}
+              onShowRepairModal={handleShowRepairModal}
+            />
+          </div>
+        </div>
+      )}
+      {showRepairModal && (
+        <RepairModal
+          hazard={repairHazard}
+          onClose={() => setShowRepairModal(false)}
         />
       )}
     </div>

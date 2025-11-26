@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 
-export default function ListModal({ onClose, onHighlight }) {
+export default function ListModal({
+  onClose,
+  onHighlight,
+  initialHazardId,
+  onShowRepairModal,
+}) {
   const [hazards, setHazards] = useState([]);
   const [selectedHazard, setSelectedHazard] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -11,6 +16,8 @@ export default function ListModal({ onClose, onHighlight }) {
   // "list" | "details"
 
   // if (!selectedHazard) return null; // prevents crash
+
+  const [showRepairModal, setShowRepairModal] = useState(false);
 
   const jobList = selectedHazard?.job_distribution
     ? JSON.parse(selectedHazard.job_distribution)
@@ -62,6 +69,23 @@ export default function ListModal({ onClose, onHighlight }) {
     }
   }
 
+  useEffect(() => {
+    // Only run after hazards list is loaded
+    if (!loading && initialHazardId) {
+      loadHazardDetails(initialHazardId);
+
+      // On mobile, jump straight to the details screen
+      if (isMobile) {
+        setMobilePage("details");
+      }
+    }
+  }, [loading, initialHazardId]);
+
+  function resetState() {
+    setSelectedHazard(null);
+    setMobilePage("list");
+  }
+
   return (
     <>
       {/* Darkened background */}
@@ -81,7 +105,10 @@ export default function ListModal({ onClose, onHighlight }) {
 
           <button
             className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 cursor-pointer"
-            onClick={onClose}
+            onClick={() => {
+              resetState();
+              onClose();
+            }}
           >
             Close
           </button>
@@ -119,7 +146,13 @@ export default function ListModal({ onClose, onHighlight }) {
                     loadHazardDetails(item.id);
                     if (isMobile) setMobilePage("details"); // <-- mobile behavior
                   }}
-                  className="flex items-center justify-between border p-4 rounded shadow-sm mb-3 cursor-pointer hover:bg-gray-100"
+                  className={`flex items-center justify-between border p-4 rounded shadow-sm mb-3 cursor-pointer 
+                    ${
+                      selectedHazard?.id === item.id
+                        ? "bg-blue-100 border-blue-400" // Selected
+                        : "bg-white hover:bg-gray-100" // Not selected
+                    }
+                  `}
                 >
                   <div>
                     <p className="font-bold capitalize">{item.hazard_type}</p>
@@ -146,9 +179,9 @@ export default function ListModal({ onClose, onHighlight }) {
           {selectedHazard && (!isMobile || mobilePage === "details") && (
             <div
               className={`${isMobile ? "w-full mobile-hide-scroll" : "w-2/3"} 
-              pl-4 overflow-y-auto h-full justify-center`}
+               pl-4 md:pr-10 lg:pr-16 overflow-y-auto h-full justify-center`}
             >
-              <div className="max-w-[600px] w-full space-y-4">
+              <div className="max-w-[600px] w-full space-y-4 mx-auto">
                 <h3 className="text-2xl font-bold">
                   {selectedHazard.hazard_type}
                 </h3>
@@ -222,7 +255,10 @@ export default function ListModal({ onClose, onHighlight }) {
                 <div className="flex gap-3 mt-4">
                   {isMobile && (
                     <button
-                      onClick={() => setMobilePage("list")}
+                      onClick={() => {
+                        setMobilePage("list");
+                        setSelectedHazard(null);
+                      }}
                       className="px-3 py-2 bg-gray-200 rounded cursor-pointer"
                     >
                       ← Back to List
@@ -231,12 +267,22 @@ export default function ListModal({ onClose, onHighlight }) {
 
                   <button
                     onClick={() => {
+                      resetState();
                       onClose();
                       onHighlight(selectedHazard);
                     }}
                     className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
                   >
                     Highlight on Map
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      onShowRepairModal && onShowRepairModal(selectedHazard)
+                    }
+                    className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 cursor-pointer"
+                  >
+                    Track Repair Progress
                   </button>
                 </div>
               </div>
