@@ -179,6 +179,14 @@ export default function ListModal({
       .catch(console.error);
   }, [refreshId]);
 
+  function getProgressStatus(progress) {
+    if (!progress || Object.keys(progress).length === 0) return "none";
+    if (progress.completed_at) return "completed";
+    if (progress.in_progress_at) return "in_progress";
+    if (progress.team_assigned_at) return "assigned";
+    return "reported";
+  }
+
   const HazardItem = React.memo(function HazardItem({
     item,
     selected,
@@ -205,7 +213,17 @@ export default function ListModal({
             {new Date(item.reported_at).toLocaleString()}
           </p>
 
-          <p className="text-[11px] text-blue-600 font-semibold mt-1">
+          <p
+            className={`text-[11px] font-semibold mt-1 ${
+              getProgressStatus(progress) === "completed"
+                ? "text-green-600"
+                : getProgressStatus(progress) === "in_progress"
+                ? "text-blue-600"
+                : getProgressStatus(progress) === "assigned"
+                ? "text-amber-600"
+                : "text-gray-500" // reported / none
+            }`}
+          >
             {getLatestProgressText(progress)}
           </p>
         </div>

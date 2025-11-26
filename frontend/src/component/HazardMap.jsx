@@ -85,6 +85,8 @@ const HazardMap = forwardRef(function HazardMap({ onShowDetailsFromMap }, ref) {
   const [hazards, setHazards] = useState([]);
   const markerRefs = useRef({});
   const [localHighlight, setLocalHighlight] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
+  const [popupProgress, setPopupProgress] = useState({});
 
   // Allow parent (App.jsx) to trigger highlight
   useImperativeHandle(ref, () => ({
@@ -109,10 +111,70 @@ const HazardMap = forwardRef(function HazardMap({ onShowDetailsFromMap }, ref) {
     loadData();
   }, []);
 
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      console.warn("Geolocation is not supported");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLocation([pos.coords.latitude, pos.coords.longitude]);
+      },
+      (err) => {
+        console.warn("User location blocked or unavailable:", err);
+      }
+    );
+  }, []);
+
+  async function loadProgress(id) {
+    if (popupProgress[id]) return; // Cached, no need to refetch
+
+    try {
+      const res = await fetch(
+        `https://road-hazard-api.road-hazard-system.workers.dev/repair/${id}`
+      );
+      const data = await res.json();
+
+      setPopupProgress((prev) => ({
+        ...prev,
+        [id]: data || {},
+      }));
+    } catch (err) {
+      console.error("Failed to load progress", err);
+    }
+  }
+
+  function getProgressStatus(p) {
+    if (!p || Object.keys(p).length === 0) return "none";
+    if (p.completed_at) return "completed";
+    if (p.in_progress_at) return "in_progress";
+    if (p.team_assigned_at) return "assigned";
+    return "reported";
+  }
+
+  function getProgressText(p) {
+    if (!p || Object.keys(p).length === 0) return "No Progress";
+    if (p.completed_at) return "Completed";
+    if (p.in_progress_at) return "In Progress";
+    if (p.team_assigned_at) return "Team Assigned";
+    return "Reported";
+  }
+
+  function getProgressColor(status) {
+    return status === "completed"
+      ? "text-green-600"
+      : status === "in_progress"
+      ? "text-blue-600"
+      : status === "assigned"
+      ? "text-amber-600"
+      : "text-gray-500";
+  }
+
   return (
     <MapContainer
-      center={defaultPosition}
-      zoom={14}
+      center={userLocation || defaultPosition}
+      zoom={12}
       scrollWheelZoom={true}
       zoomControl={false}
       attributionControl={false}
@@ -146,8 +208,11 @@ const HazardMap = forwardRef(function HazardMap({ onShowDetailsFromMap }, ref) {
               className="popup-custom"
               autoPan={false}
               keepInView={true}
+              eventHandlers={{
+                add: () => loadProgress(h.id), // Load when popup opens
+              }}
             >
-              <div className="text-sm leading-snug w-full space-y-1">
+              <div className="text-sm leading-snug w-full space-y-0.5">
                 <h3 className="text-lg font-bold">{h.hazard_type}</h3>
                 {/* Bold Labels + Normal Text */}
                 <p>
@@ -161,7 +226,19 @@ const HazardMap = forwardRef(function HazardMap({ onShowDetailsFromMap }, ref) {
                   <br />
                   <span className="font-semibold">Manpower:</span>{" "}
                   {h.manpower_required}
+                  <br />
+                  <span className="font-semibold">Progress:</span>{" "}
+                  <span
+                    className={`mt-0 text-sm font-semibold ${getProgressColor(
+                      getProgressStatus(popupProgress[h.id])
+                    )}`}
+                  >
+                    {popupProgress[h.id]
+                      ? getProgressText(popupProgress[h.id])
+                      : "Loading progress..."}
+                  </span>
                 </p>
+
                 {/* Image */}
                 {h.image_url && (
                   <img
