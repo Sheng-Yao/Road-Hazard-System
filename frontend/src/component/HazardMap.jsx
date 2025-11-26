@@ -1,5 +1,13 @@
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import { useEffect, useState, useRef } from "react";
+import {
+  useEffect,
+  useState,
+  useRef,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
+import MarkerClusterGroup from "react-leaflet-cluster";
+
 import L from "leaflet";
 
 const alertIcon = new L.Icon({
@@ -9,12 +17,8 @@ const alertIcon = new L.Icon({
   popupAnchor: [0, -64],
 });
 
-function MapHighlighter({ highlightHazard, markerRefs, onShowDetailsFromMap }) {
+function MapHighlighter({ highlightHazard, markerRefs }) {
   const map = useMap();
-  // setTimeout(() => {
-  //   const marker = markerRefs.current?.[highlightHazard.id];
-  //   if (marker) marker.openPopup();
-  // }, 800); // increased delay
 
   useEffect(() => {
     if (!highlightHazard) return;
@@ -76,14 +80,18 @@ function MapHighlighter({ highlightHazard, markerRefs, onShowDetailsFromMap }) {
   return null;
 }
 
-export default function HazardMap({
-  highlightHazard,
-  onHighlight,
-  onShowDetailsFromMap,
-}) {
+const HazardMap = forwardRef(function HazardMap({ onShowDetailsFromMap }, ref) {
   const defaultPosition = [2.945747, 101.87509]; // Singapore center (change if needed)
   const [hazards, setHazards] = useState([]);
   const markerRefs = useRef({});
+  const [localHighlight, setLocalHighlight] = useState(null);
+
+  // Allow parent (App.jsx) to trigger highlight
+  useImperativeHandle(ref, () => ({
+    highlight: (hazard) => {
+      setLocalHighlight(hazard);
+    },
+  }));
 
   useEffect(() => {
     async function loadData() {
@@ -104,7 +112,7 @@ export default function HazardMap({
   return (
     <MapContainer
       center={defaultPosition}
-      zoom={11}
+      zoom={14}
       scrollWheelZoom={true}
       zoomControl={false}
       attributionControl={false}
@@ -112,70 +120,75 @@ export default function HazardMap({
     >
       {/* 🔥 Add this so map reacts to modal click */}
       <MapHighlighter
-        highlightHazard={highlightHazard}
+        highlightHazard={localHighlight}
         markerRefs={markerRefs}
       />
 
-      <TileLayer url="https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png" />
+      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-      {hazards.map((h) => (
-        <Marker
-          key={h.id}
-          position={[h.latitude, h.longitude]}
-          icon={alertIcon}
-          ref={(marker) => {
-            if (marker && !markerRefs.current[h.id]) {
-              markerRefs.current[h.id] = marker;
-            }
-          }}
-          eventHandlers={{
-            click: () => onHighlight(h), // 🔥 highlight instantly on click
-          }}
-        >
-          <Popup
-            maxWidth={250}
-            className="popup-custom"
-            autoPan={false}
-            keepInView={true}
+      <MarkerClusterGroup disableClusteringAtZoom={10}>
+        {hazards.map((h) => (
+          <Marker
+            key={h.id}
+            position={[h.latitude, h.longitude]}
+            icon={alertIcon}
+            ref={(marker) => {
+              if (marker && !markerRefs.current[h.id]) {
+                markerRefs.current[h.id] = marker;
+              }
+            }}
+            eventHandlers={{
+              click: () => setLocalHighlight(h),
+            }}
           >
-            <div className="text-sm leading-snug w-full space-y-1">
-              <h3 className="text-lg font-bold">{h.hazard_type}</h3>
-              {/* Bold Labels + Normal Text */}
-              <p>
-                <span className="font-semibold">Risk:</span> {h.risk_level}
-                <br />
-                <span className="font-semibold">Repair Material:</span>{" "}
-                {h.repair_material}
-                <br />
-                <span className="font-semibold">Volume:</span>{" "}
-                {h.volume_material_required}
-                <br />
-                <span className="font-semibold">Manpower:</span>{" "}
-                {h.manpower_required}
-              </p>
-              {/* Image */}
-              {h.image_url && (
-                <img
-                  src={h.image_url}
-                  alt={h.hazard_type}
-                  className="mt-1 max-w-[250px] h-auto rounded shadow-lg"
-                />
-              )}
+            <Popup
+              maxWidth={250}
+              className="popup-custom"
+              autoPan={false}
+              keepInView={true}
+            >
+              <div className="text-sm leading-snug w-full space-y-1">
+                <h3 className="text-lg font-bold">{h.hazard_type}</h3>
+                {/* Bold Labels + Normal Text */}
+                <p>
+                  <span className="font-semibold">Risk:</span> {h.risk_level}
+                  <br />
+                  <span className="font-semibold">Repair Material:</span>{" "}
+                  {h.repair_material}
+                  <br />
+                  <span className="font-semibold">Volume:</span>{" "}
+                  {h.volume_material_required}
+                  <br />
+                  <span className="font-semibold">Manpower:</span>{" "}
+                  {h.manpower_required}
+                </p>
+                {/* Image */}
+                {h.image_url && (
+                  <img
+                    loading="lazy"
+                    src={h.image_url}
+                    alt={h.hazard_type}
+                    className="mt-1 max-w-[250px] h-auto rounded shadow-lg"
+                  />
+                )}
 
-              <button
-                className="w-full mt-3 px-3 py-2 bg-gray-200 hover:bg-gray-300 rounded text-center cursor-pointer"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onShowDetailsFromMap(h); // ↩ Call function from App.jsx
-                }}
-              >
-                View Full Details →
-              </button>
-            </div>
-          </Popup>
-        </Marker>
-      ))}
+                <button
+                  className="w-full mt-3 px-3 py-2 bg-gray-200 hover:bg-gray-300 rounded text-center cursor-pointer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onShowDetailsFromMap(h); // ↩ Call function from App.jsx
+                  }}
+                >
+                  View Full Details →
+                </button>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
+      </MarkerClusterGroup>
     </MapContainer>
   );
-}
+});
+
+export default HazardMap;

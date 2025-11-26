@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 
 export default function ListModal({
   onClose,
   onHighlight,
   initialHazardId,
   onShowRepairModal,
+  forceDetails,
 }) {
   const [hazards, setHazards] = useState([]);
   const [selectedHazard, setSelectedHazard] = useState(null);
@@ -13,27 +14,42 @@ export default function ListModal({
 
   const isMobile = window.innerWidth < 768;
   const [mobilePage, setMobilePage] = useState("list");
-  // "list" | "details"
 
-  // if (!selectedHazard) return null; // prevents crash
+  const jobList = useMemo(() => {
+    if (!selectedHazard) return [];
+    try {
+      return JSON.parse(selectedHazard.job_distribution || "[]");
+    } catch {
+      return [];
+    }
+  }, [selectedHazard]);
 
-  const [showRepairModal, setShowRepairModal] = useState(false);
+  const riskReasonList = useMemo(() => {
+    if (!selectedHazard) return [];
+    try {
+      return JSON.parse(selectedHazard.risk_reason || "[]");
+    } catch {
+      return [];
+    }
+  }, [selectedHazard]);
 
-  const jobList = selectedHazard?.job_distribution
-    ? JSON.parse(selectedHazard.job_distribution)
-    : [];
+  const materialReasonList = useMemo(() => {
+    if (!selectedHazard) return [];
+    try {
+      return JSON.parse(selectedHazard.repair_material_reason || "[]");
+    } catch {
+      return [];
+    }
+  }, [selectedHazard]);
 
-  const guideList = selectedHazard?.repair_guide
-    ? JSON.parse(selectedHazard.repair_guide)
-    : [];
-
-  const riskReasonList = selectedHazard?.risk_reason
-    ? JSON.parse(selectedHazard.risk_reason)
-    : [];
-
-  const materialReasonList = selectedHazard?.repair_material_reason
-    ? JSON.parse(selectedHazard.repair_material_reason)
-    : [];
+  const guideList = useMemo(() => {
+    if (!selectedHazard) return [];
+    try {
+      return JSON.parse(selectedHazard.repair_guide || "[]");
+    } catch {
+      return [];
+    }
+  }, [selectedHazard]);
 
   useEffect(() => {
     async function fetchHazards() {
@@ -55,6 +71,22 @@ export default function ListModal({
 
     fetchHazards();
   }, []);
+
+  /* -----------------------------------------------
+      NEW: Helper to display last progress text
+  -------------------------------------------------- */
+  function getLatestProgressText(t) {
+    if (!t) return "No Progress";
+
+    if (t.completed_at)
+      return "Completed: " + new Date(t.completed_at).toLocaleString();
+    if (t.in_progress_at)
+      return "In Progress: " + new Date(t.in_progress_at).toLocaleString();
+    if (t.team_assigned_at)
+      return "Team Assigned: " + new Date(t.team_assigned_at).toLocaleString();
+
+    return "Reported";
+  }
 
   async function loadHazardDetails(id) {
     try {
@@ -85,6 +117,56 @@ export default function ListModal({
     setSelectedHazard(null);
     setMobilePage("list");
   }
+
+  useEffect(() => {
+    if (isMobile && forceDetails) {
+      setMobilePage("details");
+    }
+  }, [forceDetails]);
+
+  const handleClick = (id) => {
+    loadHazardDetails(id);
+    if (isMobile) setMobilePage("details");
+  };
+
+  const HazardItem = React.memo(function HazardItem({
+    item,
+    selected,
+    progress,
+  }) {
+    return (
+      <div
+        onClick={() => handleClick(item.id)}
+        className={`flex items-center justify-between border p-4 rounded shadow-sm mb-3 cursor-pointer ${
+          selected
+            ? "bg-blue-100 border-blue-400"
+            : "bg-white hover:bg-gray-100"
+        }`}
+      >
+        <div>
+          <p className="font-bold capitalize">{item.hazard_type}</p>
+          <p className="text-sm text-gray-600">State: {item.state}</p>
+          <p className="text-sm">Risk Level: {item.risk_level}</p>
+
+          <p className="text-[10px] text-gray-400">
+            {new Date(item.reported_at).toLocaleString()}
+          </p>
+
+          <p className="text-[11px] text-blue-600 font-semibold mt-1">
+            {getLatestProgressText(progress)}
+          </p>
+        </div>
+
+        {item.image_url && (
+          <img
+            loading="lazy"
+            src={item.image_url}
+            className="h-24 w-24 object-cover rounded"
+          />
+        )}
+      </div>
+    );
+  });
 
   return (
     <>
@@ -140,37 +222,12 @@ export default function ListModal({
               )}
 
               {hazards.map((item) => (
-                <div
+                <HazardItem
                   key={item.id}
-                  onClick={() => {
-                    loadHazardDetails(item.id);
-                    if (isMobile) setMobilePage("details"); // <-- mobile behavior
-                  }}
-                  className={`flex items-center justify-between border p-4 rounded shadow-sm mb-3 cursor-pointer 
-                    ${
-                      selectedHazard?.id === item.id
-                        ? "bg-blue-100 border-blue-400" // Selected
-                        : "bg-white hover:bg-gray-100" // Not selected
-                    }
-                  `}
-                >
-                  <div>
-                    <p className="font-bold capitalize">{item.hazard_type}</p>
-                    <p className="text-sm text-gray-600">State: {item.state}</p>
-                    <p className="text-sm">Risk Level: {item.risk_level}</p>
-                    <p className="text-[10px] text-gray-400">
-                      {new Date(item.reported_at).toLocaleString()}
-                    </p>
-                  </div>
-
-                  {item.image_url && (
-                    <img
-                      src={item.image_url}
-                      className="h-24 w-24 object-cover rounded"
-                      alt="preview"
-                    />
-                  )}
-                </div>
+                  item={item}
+                  selected={selectedHazard?.id === item.id}
+                  progress={item.repair_tracker}
+                />
               ))}
             </div>
           )}
@@ -187,6 +244,7 @@ export default function ListModal({
                 </h3>
 
                 <img
+                  loading="lazy"
                   src={selectedHazard.image_url}
                   className="w-full max-h-64 object-cover rounded mb-4"
                   alt="hazard"

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import roadImg from "./assets/road.png";
 
 import HazardMap from "./component/HazardMap.jsx";
@@ -10,25 +10,23 @@ const isMobile = window.innerWidth < 768;
 export default function App() {
   const [activeTab, setActiveTab] = useState("map");
   const [showList, setShowList] = useState(false);
-  const [focusHazard, setFocusHazard] = useState(null);
-  const [highlightHazard, setHighlightHazard] = useState(null);
 
-  const [mobileView, setMobileView] = useState(isMobile);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [showRepairModal, setShowRepairModal] = useState(false);
   const [repairHazard, setRepairHazard] = useState(null);
 
-  function showHazardDetailsFromMap(hazard) {
-    setHighlightHazard(hazard); // focus & open popup
-    setActiveTab("list"); // switch to list
-    setShowList(true); // show modal
-  }
+  const [initialHazardId, setInitialHazardId] = useState(null);
 
-  function handleShowDetailsFromMap(hazard) {
-    setHighlightHazard(hazard); // Tell ListModal which hazard to open
-    setActiveTab("list");
+  const [forceDetails, setForceDetails] = useState(false);
+  const mapRef = useRef(null);
+
+  function showHazardDetailsFromMap(hazard) {
+    mapRef.current?.highlight(hazard);
+    setInitialHazardId(hazard.id);
+    setForceDetails(true);
     setShowList(true);
+    setActiveTab("list");
   }
 
   function handleShowRepairModal(hazard) {
@@ -148,8 +146,7 @@ export default function App() {
       </header>
       <main className="absolute inset-0 z-0">
         <HazardMap
-          highlightHazard={highlightHazard}
-          onHighlight={setHighlightHazard}
+          ref={mapRef}
           onShowDetailsFromMap={showHazardDetailsFromMap}
         />
       </main>
@@ -167,14 +164,17 @@ export default function App() {
             }`}
           >
             <ListModal
-              initialHazardId={highlightHazard?.id}
+              initialHazardId={initialHazardId}
+              forceDetails={forceDetails}
               onClose={() => {
                 setShowList(false);
                 setActiveTab("map");
-                setHighlightHazard(null);
+                setInitialHazardId(null);
+                setForceDetails(false);
+                setMobileMenuOpen(false);
               }}
               onHighlight={(hazard) => {
-                setHighlightHazard(hazard);
+                mapRef.current?.highlight(hazard);
                 setShowList(false);
               }}
               onShowRepairModal={handleShowRepairModal}

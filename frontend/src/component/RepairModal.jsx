@@ -4,7 +4,6 @@ export default function RepairModal({ hazard, onClose }) {
   const [workers, setWorkers] = useState([]);
   const [assignedTo, setAssignedTo] = useState("");
   const [status, setStatus] = useState("reported");
-  const [upload, setUpload] = useState(null);
   const [progress, setProgress] = useState(null);
 
   const API_BASE = "https://road-hazard-api.road-hazard-system.workers.dev";
@@ -42,10 +41,6 @@ export default function RepairModal({ hazard, onClose }) {
     }
     loadWorkers();
   }, []);
-
-  function handleFileChange(e) {
-    setUpload(e.target.files[0]);
-  }
 
   function isBackwardUpdate(newStatus, progress) {
     if (!progress) return false;
@@ -226,13 +221,13 @@ export default function RepairModal({ hazard, onClose }) {
 
           <input
             type="file"
-            onChange={handleFileChange}
             className="block w-full text-sm
                file:mr-4 file:py-2 file:px-4
                file:rounded file:border-0
                file:text-sm file:font-semibold
                file:bg-blue-50 file:text-blue-700
                hover:file:bg-blue-100 cursor-pointer"
+            onChange={(e) => setUpload(e.target.files?.[0] ?? null)}
           />
         </div>
 
