@@ -84,9 +84,14 @@ export default function RepairModal({ hazard, onClose }) {
       return;
     }
 
+    if (!assignedTo) {
+      alert("Please select a worker before updating status.");
+      return;
+    }
+
     const payload = {
       status,
-      worker: assignedTo || null, // FIXED: backend expects "worker"
+      worker_id: assignedTo || null, // FIXED: backend expects "worker"
       photo_url: null,
     };
 
@@ -102,6 +107,12 @@ export default function RepairModal({ hazard, onClose }) {
       alert(result.error || "Failed to update progress.");
       return;
     }
+
+    // reload latest progress BEFORE closing
+    const updated = await fetch(`${API_BASE}/repair/${hazard.id}`).then((r) =>
+      r.json()
+    );
+    setProgress(updated);
 
     alert("Repair progress updated!");
     setUpload(null);
