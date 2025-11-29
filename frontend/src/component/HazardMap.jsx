@@ -246,6 +246,17 @@ const HazardMap = forwardRef(function HazardMap({ onShowDetailsFromMap }, ref) {
                     src={h.image_url}
                     alt={h.hazard_type}
                     className="mt-1 max-w-[250px] h-auto rounded shadow-lg"
+                    onLoad={() => {
+                      const marker = markerRefs.current?.[h.id];
+                      if (!marker) return;
+
+                      // Ask Leaflet to update popup size
+                      const popup = marker.getPopup();
+                      popup?.update();
+
+                      // Trigger map movement by firing the same event
+                      marker._map?.fire("moveend");
+                    }}
                   />
                 )}
 
